@@ -4,11 +4,22 @@ const observer = {
 	error: function(){ console.log('Error: ', err) }
 }
 
-
-function mapFn(transformationFn){
+function filterFn(conditionFn){ 
 	const inputObservable = this;
-	console.log(transformationFn);
-	const outputObserable = createObservable(function subscribe(obs) {
+	const outputObserable = createObservable(function(obs) {
+		inputObservable.subscribe({
+			next: (x) => conditionFn(x) && obs.next(x),
+			complete: () => obs.complete(),
+			error: (err) => obs.error(err)
+		})
+	});
+
+	return outputObserable;
+}
+
+function mapFn(transformationFn){ 
+	const inputObservable = this;
+	const outputObserable = createObservable(function(obs) {
 		inputObservable.subscribe({
 			next: (x) => obs.next(transformationFn(x)),
 			complete: () => obs.complete(),
@@ -22,6 +33,7 @@ function mapFn(transformationFn){
 function createObservable(subscribeFn){
 	return {
 		map: mapFn,
+		filter: filterFn,
 		subscribe: subscribeFn
 	}
 }
@@ -39,14 +51,15 @@ const intervalObservable = createObservable(function(obs){
 
 	}, 300)
 
-})
+});
 
 
 const arrayObservable = createObservable(function(obs){
 	[2,3,4,5,5].forEach(obs.next);
 	obs.complete();
-})
+});
 
 intervalObservable
+	.filter(x => x%2)
 	.map(x => x *10)
 	.subscribe(observer)
